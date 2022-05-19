@@ -12,32 +12,32 @@ resource "aws_ecr_repository" "this" {
 }
 
 resource "aws_ecr_lifecycle_policy" "this" {
-  count = var.lifecyclePolicies != "" ? 1 : 0
+  count      = var.lifecyclePolicies != "" ? 1 : 0
   repository = aws_ecr_repository.this.name
   policy     = var.lifecyclePolicies
 }
 
 resource "aws_ecr_replication_configuration" "this" {
-  for_each = var.replicationConfiguration
+  count = var.replicationDestinations != [] || var.replicationFilter != {} ? 1 : 0
   replication_configuration {
-    dynamic "rule" {
-      for_each = var.replicationConfiguration
-      content {
-        destination {
-          region      = rule.value["region"]
-          registry_id = rule.value["registry_id"]
+    rule {
+      dynamic "destination" {
+        for_each = var.replicationDestinations
+        content {
+          region      = destination.value["region"]
+          registry_id = destination.value["registry_id"]
         }
-        repository_filter {
-          filter      = rule.value["filter"]
-          filter_type = rule.value["filter_type"]
-        }
+      }
+      repository_filter {
+        filter      = var.replicationFilter["filter"]
+        filter_type = var.replicationFilter["filter_type"]
       }
     }
   }
 }
 
 resource "aws_ecr_repository_policy" "this" {
-  count = var.repositoryPolicy != "{}" ? 1 : 0
+  count      = var.repositoryPolicy != "{}" ? 1 : 0
   repository = aws_ecr_repository.this.name
   policy     = var.repositoryPolicy
 }

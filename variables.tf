@@ -25,10 +25,15 @@ variable "lifecyclePolicies" {
   description = "lifecyclePolicies (str): String of JSON formatted lifecycle policies."
   default     = ""
 }
-variable "replicationConfiguration" {
+variable "replicationDestinations" {
   type        = set(any)
-  description = "replicationConfiguration (set): Set of Maps using the following attributes. region, registry_id, filter, filter_type"
+  description = "replicationDestinations (set): Set of Maps using the following attributes. region, registry_id"
   default     = []
+}
+variable "replicationFilter" {
+  type        = map(any)
+  description = "replicationFilter (map): Map identifying the repository filter to put in place for replication. Supports the attributes of filter, and filter_type."
+  default     = {}
 }
 variable "repositoryPolicy" {
   type        = string
