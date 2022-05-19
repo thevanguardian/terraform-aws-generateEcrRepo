@@ -20,6 +20,26 @@ Dynamically creates an ECR repository based on the attributes assigned during mo
 
 # Example Usage
 ```hcl
+data "aws_iam_policy_document" "this" {
+  statement {
+    sid = "RepositoryPolicy"
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::123456789101:user/devadmin",
+      ]
+    }
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:DescribeImages",
+      "ecr:DescribeRepositories",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetRepositoryPolicy",
+      "ecr:ListImages"
+    ]
+  }
+}
 module "this" {
   source = "thevanguardian/generateEcrRepo/aws"
   version = "1.0.0"
@@ -30,39 +50,15 @@ module "this" {
     kms_key         = null
   }
   imageScanningConfig = false
-  repositoryPolicy = jsonencode({
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "repositorypolicy",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": [
-          "arn:aws:iam::123456789101:user/thisuser",
-          "arn:aws:iam::123456789101:role/thatrole"
-        ]
-      },
-      "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:BatchDeleteImage",
-        "ecr:BatchGetImage",
-        "ecr:CompleteLayerUpload",
-        "ecr:DeleteRepository",
-        "ecr:DeleteRepositoryPolicy",
-        "ecr:DescribeRepositories",
-        "ecr:GetAuthorizationToken",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:GetRepositoryPolicy",
-        "ecr:InitiateLayerUpload",
-        "ecr:ListImages",
-        "ecr:PutImage",
-        "ecr:SetRepositoryPolicy",
-        "ecr:UploadLayerPart"
-      ]
-    }
-  ]
-})
-
+  replicationDestinations = toset([
+    { region = "us-east-1", registry_id = "123456789101" },
+    { region = "us-west-2", registry_id = "334567891011" }
+  ])
+  replicationFilter = {
+    filter      = "test",
+    filter_type = "PREFIX_MATCH"
+  }
+  repositoryPolicy = data.aws_iam_policy_document.this.json
   lifecyclePolicies = jsonencode({
     "rules" : [
       {
@@ -73,19 +69,6 @@ module "this" {
           "countType" : "sinceImagePushed",
           "countUnit" : "days",
           "countNumber" : 14
-        },
-        "action" : {
-          "type" : "expire"
-        }
-      },
-      {
-        "rulePriority" : 2,
-        "description" : "test",
-        "selection" : {
-          "tagStatus" : "any",
-          "countType" : "sinceImagePushed",
-          "countUnit" : "days",
-          "countNumber" : 1
         },
         "action" : {
           "type" : "expire"
